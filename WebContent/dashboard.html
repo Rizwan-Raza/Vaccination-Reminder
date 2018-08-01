@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Vaccination Reminder Application System</title>
+<script src="js/jquery.min.js" type="text/javascript"></script>
+<script src="js/bootstrap.min.js" type="text/javascript"></script>
+<link href="css/bootstrap.min.css" type="text/css" rel="stylesheet" />
+<link href="css/style.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript">
+	var row;
+	function addChild(elem) {
+		$("#add-child").show().siblings().hide();
+		$(".side-nav ul li:nth-child(" + elem + ") a").removeClass(
+				"bg-secondary text-white").addClass("active").parent()
+				.siblings().find("a").removeClass("active").addClass(
+						"bg-secondary text-white");
+	}
+	function modChild(elem) {
+		$("#mod-child").show().siblings().hide();
+		$(".side-nav ul li:nth-child(" + elem + ") a").removeClass(
+				"bg-secondary text-white").addClass("active").parent()
+				.siblings().find("a").removeClass("active").addClass(
+						"bg-secondary text-white");
+	}
+	function todaysNot(elem) {
+		$("#todays-not").show().siblings().hide();
+		$(".side-nav ul li:nth-child(" + elem + ") a").removeClass(
+				"bg-secondary text-white").addClass("active").parent()
+				.siblings().find("a").removeClass("active").addClass(
+						"bg-secondary text-white");
+	}
+	function getInitialData() {
+		$
+				.ajax({
+					type : 'POST',
+					url : 'GetTodaysNoti',
+					success : function(data, status) {
+						// console.log(data);
+						$("#todays-not table tbody").empty();
+						var obj = JSON.parse(data);
+						var string = "";
+						for (var i = 0; i < obj.nots.length; i++) {
+							var child = obj.nots[i];
+							string += "<tr id='not"+child.cid+"'>";
+							string += "<td>" + child.c_name + "</td>";
+							string += "<td>" + child.f_name + "</td>";
+							string += "<td>" + child.m_name + "</td>";
+							string += "<td>" + child.email + "</td>";
+							string += "<td>" + child.v_name + "</td>";
+							string += "<td>" + child.v_date + "</td>";
+							string += "<td><button class='btn btn-success btn-sm' onclick='mail("+child.cid+",\""
+									+ child.email + "\", \""+child.v_name+"\", \""+child.v_date+"\", "+child.vid+")'>Send Mail</button></td>";
+							string += "</tr>";
+						}
+						if(string == "") {
+							string = "<tr><td colspan='7'>No Result Found</td></tr>";
+						}
+						// console.log(string);
+						$("#todays-not table tbody").html(string);
+					},
+					error : function(xhr, textStatus) {
+						alert("Error: " + textStatus);
+					}
+				});
+		$
+				.ajax({
+					type : 'POST',
+					url : 'GetTodaysVaccines',
+					success : function(data, status) {
+						// console.log(data);
+						$("#mod-child table tbody").empty();
+						var obj = JSON.parse(data);
+						var string = "";
+						for (var i = 0; i < obj.nots.length; i++) {
+							var child = obj.nots[i];
+							string += "<tr id='child"+child.cid+"'>";
+							string += "<td>" + child.c_name + "</td>";
+							string += "<td>" + child.f_name + "</td>";
+							string += "<td>" + child.m_name + "</td>";
+							string += "<td>" + child.email + "</td>";
+							string += "<td>" + child.v_name + "</td>";
+							string += "<td>" + child.v_date + "</td>";
+							string += "<td><button class='btn btn-success btn-sm mr-1 mb-1' data-toggle='modal' data-target='#addGrowthModal' data-whatever='"+child.cid+"'>Add Growth Info</button>"
+									+ "<button class='btn btn-info btn-sm mb-1 mr-1' data-toggle='modal' data-target='#showGrowthModal' data-whatever='"+child.cid+"'>Show Growth</button><button class='btn btn-primary btn-sm mr-1' onclick='report("+child.cid+")'>Mail Report</button></td>";
+							string += "</tr>";
+						}
+						if(string == "") {
+							string = "<tr><td colspan='7'>No Result Found</td></tr>";
+						}
+						// console.log(string);
+						$("#mod-child table tbody").html(string);
+					},
+					error : function(xhr, textStatus) {
+						alert("Error: " + textStatus);
+					}
+				});
+
+	}
+	function mail(cid, email, vaccine, date, vid) {
+		$
+		.ajax({
+			type : 'POST',
+			url : 'Mail',
+			data: {
+				email: email,
+				v_name: vaccine,
+				v_date: date,
+				vid: vid
+			}, 
+			success : function(data, status) {
+				if(JSON.parse(data).response == "ok") {
+					$('#resultModal .modal-title').text('Mail Sent');
+					$('#resultModal .modal-body').html('Mail has been successfully sent.');
+					$("#not"+cid).hide("slow", function() {
+						$("#not"+cid).remove();
+					});
+				} else {
+					$('#resultModal .modal-title').text('Mail not Sent');
+					$('#resultModal .modal-body').html('Mail has not been sent.');
+				}
+				$('#resultModal').modal('show');
+			},
+			error : function(xhr, textStatus) {
+				alert("Error: " + textStatus);
+			}
+		});
+	}
+	function signOut(elem) {
+		$("#signOutModal").modal("show");
+	}
+	function logout() {
+		sessionStorage.removeItem("username");
+		window.location.href = "./";
+	}
+	function addGrowthForm(elem) {
+		$("#addGrowthModal").modal("hide");
+		$
+		.ajax({
+			type : 'POST',
+			url : 'AddGrowth',
+			data: $(elem).serialize(), 
+			success : function(data, status) {
+				if(JSON.parse(data).response == "ok") {
+					$('#resultModal .modal-title').text('Growth Successfully Added');
+					$('#resultModal .modal-body').html('Growth is successfully added to our system.');
+				} else {
+					$('#resultModal .modal-title').text('Not Added');
+					$('#resultModal .modal-body').html('Growth is not added to our system.');
+				}
+				$('#resultModal').modal('show');
+			},
+			error : function(xhr, textStatus) {
+				$('#resultModal .modal-title').text('Not Added');
+				$('#resultModal .modal-body').html('Growth is not added to our system.');
+				$('#resultModal').modal('show');
+			}
+		});	
+		return false;
+	}
+	function addChildForm(elem) {
+		$
+		.ajax({
+			type : 'POST',
+			url : 'AddChild',
+			data: $(elem).serialize(), 
+			success : function(data, status) {
+				if(JSON.parse(data).response == "ok") {
+					$('#resultModal .modal-title').text('Child Successfully Added');
+					$('#resultModal .modal-body').html('<b>'
+							+ JSON.parse(data).child + '</b> is successfully added to our system.');
+				} else {
+					$('#resultModal .modal-title').text('Not Added');
+					$('#resultModal .modal-body').html('<b>'
+							+ JSON.parse(data).child + '</b> is not added to our system.');
+				}
+				$('#resultModal').modal('show');
+			},
+			error : function(xhr, textStatus) {
+				$('#resultModal .modal-title').text('Not Added');
+				$('#resultModal .modal-body').html('Child is not added to our system.');
+				$('#resultModal').modal('show');
+			}
+		});		
+		return false;
+	}
+	$(document).ready(
+			function() {
+				getInitialData();
+				$("#dob").change(function() {
+					getDate(42, "#6week");
+					getDate(70, "#10week");
+					getDate(98, "#14week");
+					getDate(279, "#9m");
+					getDate(586, "#16m");
+					getDate(1826, "#5yr");
+					getDate(3652, "#10yr");
+					getDate(5844, "#16yr");
+				});
+				$(document).ajaxComplete(function( event, xhr, settings ) {
+					$("html, body").css({"cursor": "default", "opacity": "1"});
+
+				});
+				$(document).ajaxSend(function( event, xhr, settings ) {
+					$("html, body").css({"cursor": "wait", "opacity": "0.8"});
+
+				});
+
+				$('#removeModal').on('show.bs.modal', function(event) {
+					var button = $(event.relatedTarget) // Button that triggered the modal
+					row = button.data('whatever') // Extract info from data-* attributes
+				});
+				$('#addGrowthModal').on(
+						'show.bs.modal',
+						function(event) {
+							$("#addGrowthModal form #cid").val(
+									$(event.relatedTarget).data('whatever'));
+
+						});
+				$('#showGrowthModal').on(
+						'show.bs.modal',
+						function(event) {
+							getGrowthOf($(event.relatedTarget).data('whatever'));
+
+						});
+				if (sessionStorage.getItem("username") != null) {
+					$("aside").prepend(
+							"<div class='text-white p-3'>"
+							+"<h4>Welcome <b>"
+							+ sessionStorage.getItem("username")
+							+ "</b>!</h4>"
+							+"</div>");
+				}
+
+			});
+
+	function getGrowthOf(cid) {
+		$
+				.ajax({
+					type : 'POST',
+					url : 'GetGrowth',
+					data : {
+						cid: cid
+					}, 
+					success : function(data, status) {
+						console.log("Growth"+data);
+						$("#showGrowthModal .bar-graph li.bar").remove();
+						var obj = JSON.parse(data);
+						var backs = [
+							{"back": "primary", "color": "white"},
+							{"back": "secondary", "color": "white"},
+							{"back": "success", "color": "white"},
+							{"back": "danger", "color": "white"},
+							{"back": "warning", "color": "dark"},
+							{"back": "info", "color": "white"},
+							{"back": "light", "color": "dark"},
+							{"back": "dark", "color": "white"}
+						];
+						for (var i = 0; i < obj.growths.length; i++) {
+							var growth = obj.growths[i];
+							var bmi = growth.weight / (growth.height / 100);
+							bmi = bmi.toFixed(2);
+							var string = "<li class='bar bg-"+backs[i%8].back+" text-"+backs[i%8].color+"' style='height: "+bmi*(100/40)+"%;' title='"+bmi+" BMI'>"
+									+ "<div class='percent'>"+bmi+"<span>BMI</span></div>"
+									+ "<div class='description'>"+growth.timeslot+"</div>"
+									+ "</li>";
+							console.log(string)
+							$("#showGrowthModal .bar-graph").append(string);
+						}
+					},
+					error : function(xhr, textStatus) {
+						alert("Error: " + textStatus);
+					}
+				});
+	}
+	function report(cid) {
+		$
+		.ajax({
+			type : 'POST',
+			url : 'Report',
+			data: {
+				cid: cid
+			}, 
+			success : function(data, status) {
+				console.log(data);
+/* 				if(JSON.parse(data).response == "ok") {
+					$('#resultModal .modal-title').text('Report Sent');
+					$('#resultModal .modal-body').html('Report has been successfully sent.');
+					$("#not"+cid).hide("slow", function() {
+						$("#not"+cid).remove();
+					});
+				} else {
+					$('#resultModal .modal-title').text('Report not Sent');
+					$('#resultModal .modal-body').html('Report has not been sent.');
+				} */
+				$('#resultModal .modal-body').html(data);
+				$('#resultModal').modal('show');
+			},
+			error : function(xhr, textStatus) {
+				$('#resultModal .modal-title').text('Report not Sent');
+				$('#resultModal .modal-body').html('Report has not been sent.(Server Error)');
+				$('#resultModal').modal('show');
+			}
+		});
+	}
+	function remove() {
+		$('#removeModal').modal("hide");
+		console.log(row);
+		$(row).hide("slow", function() {
+			$(row).remove();
+		});
+	}
+
+	// Vaccines 
+
+	function getDate(num, id) {
+		var newdate = new Date(new Date($('#dob').val()));
+
+		newdate.setDate(newdate.getDate() + num);
+
+		var dd = newdate.getDate();
+		var mm = newdate.getMonth() + 1;
+		if (mm < 10) {
+			mm = "0" + mm;
+		}
+		if (dd < 10) {
+			dd = "0" + dd;
+		}
+		var yyyy = newdate.getFullYear();
+
+		var someFormattedDate = yyyy + '-' + mm + '-' + dd;
+		$(id).val(someFormattedDate);
+	}
+</script>
+</head>
+<body class="bg-light" onload="addChild(3)">
+	<div class="row no-gutters">
+		<div class="col-sm-3 side-nav bg-dark">
+			<aside>
+				<ul class="list-group">
+					<li><a
+						class="list-group-item bg-secondary text-white disabled" href="#">Sign
+							In</a></li>
+					<li><a
+						class="list-group-item bg-secondary text-white disabled" href="#">Sign
+							Up</a></li>
+					<li><a class="list-group-item active"
+						href="javascript:addChild(3)">Add Child's Info</a></li>
+					<li><a class="list-group-item bg-secondary text-white"
+						href="javascript:modChild(4)">Add/Show Child's Growth</a></li>
+					<li><a class="list-group-item bg-secondary text-white"
+						href="javascript:todaysNot(5)">Today's Notifications</a></li>
+					<li><a class="list-group-item bg-secondary text-white"
+						href="javascript:signOut()">Sign out</a></li>
+				</ul>
+			</aside>
+		</div>
+		<div class="col-sm-3"></div>
+		<div class="col-sm-9">
+			<div class="container pb-4" id="add-child">
+				<br />
+				<div class="d-flex">
+					<img src="img/childimage.jpg" alt="child" class="mx-auto" />
+				</div>
+				<br />
+
+				<form action="return addChildForm(this)">
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">ChildName</div>
+						<div class="col-sm-9">
+							<input type="text" name="childname" id="childname" required
+								class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">FatherName</div>
+						<div class="col-sm-9">
+							<input type="text" name="fathername" id="fathername" required
+								class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">MotherName</div>
+						<div class="col-sm-9">
+							<input type="text" name="mothername" id="mothername" required
+								class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Email Id</div>
+						<div class="col-sm-9">
+							<input type="email" name="email" id="email" required
+								class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Mobile Number</div>
+						<div class="col-sm-9">
+							<input type="tel" id="mobile_num" name="telephone" required
+								class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Date Of Birth</div>
+						<div class="col-sm-9">
+							<input type="date" name="dob" id="dob" required
+								class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Child's Height</div>
+						<div class="input-group col-sm-9">
+							<input type="number" name="height" id="height" required
+								class="form-control" />
+							<div class="input-group-append">
+								<span class="input-group-text" id="basic-addon2">cm</span>
+							</div>
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Child's Weight</div>
+						<div class="input-group col-sm-9">
+							<input type="number" name="weight" id="weight" required
+								class="form-control" />
+							<div class="input-group-append">
+								<span class="input-group-text" id="basic-addon2">kg</span>
+							</div>
+						</div>
+					</div>
+					<fieldset class="scheduler-border">
+						<legend class="scheduler-border">Vaccines Due Date</legend>
+						<div class="control-group">
+							<div class="form-row form-group">
+								<div class="col-sm-3">DPT Primary Dose1 And Hept1</div>
+								<div class="col-sm-9">
+									<input type="date" name="dptdatep1" id="6week" required
+										class="form-control" readonly />
+								</div>
+							</div>
+							<div class="form-row form-group">
+								<div class="col-sm-3">DPT Primary Dose2 And Hept2</div>
+								<div class="col-sm-9">
+									<input type="date" name="dptdatep2" id="10week" required
+										class="form-control" readonly />
+								</div>
+							</div>
+							<div class="form-row form-group">
+								<div class="col-sm-3">DPT Primary Dose3 And Hept3</div>
+								<div class="col-sm-9">
+									<input type="date" name="dptdatep3" id="14week" required
+										class="form-control" readonly />
+								</div>
+							</div>
+							<div class="form-row form-group">
+								<div class="col-sm-3">DPT 1st Booster,Measles2,JE2</div>
+								<div class="col-sm-9">
+									<input type="date" name="dpt1_me2_je2" id="16m" required
+										class="form-control" readonly />
+								</div>
+							</div>
+							<div class="form-row form-group">
+								<div class="col-sm-3">DPT 2nd Booster</div>
+								<div class="col-sm-9">
+									<input type="date" name="dpt2boost" id="5yr" required
+										class="form-control" readonly />
+								</div>
+							</div>
+							<div class="form-row form-group">
+								<div class="col-sm-3">Measles1,JE1</div>
+								<div class="col-sm-9">
+									<input type="date" name="me1_je1" id="9m" required
+										class="form-control" readonly />
+								</div>
+							</div>
+							<div class="form-row form-group">
+								<div class="col-sm-3">Tetanus 1st Dose</div>
+								<div class="col-sm-9">
+									<input type="date" name="tt1" id="10yr" required
+										class="form-control" readonly />
+								</div>
+							</div>
+							<div class="form-row form-group">
+								<div class="col-sm-3">Tetanus 2nd Dose</div>
+								<div class="col-sm-9">
+									<input type="date" name="tt2" id="16yr" required
+										class="form-control" readonly />
+								</div>
+							</div>
+						</div>
+					</fieldset>
+					<button type="submit" class="btn btn-success mx-auto d-block">Add
+						Child</button>
+				</form>
+			</div>
+			<div class="container" id="mod-child">
+				<br />
+				<div class="d-flex">
+					<img src="img/childimage.jpg" alt="child" class="mx-auto" />
+				</div>
+				<br />
+				<div class="table-responsive">
+					<table class="table table-bordered table-stripped">
+						<thead class="thead-dark">
+							<tr>
+								<th>Child Name</th>
+								<th>Father Name</th>
+								<th>Mother Name</th>
+								<th>Email</th>
+								<th>Vaccine</th>
+								<th>Due Date</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="child1">
+								<td>Nafees</td>
+								<td>Tahir Raza</td>
+								<td>Mumtaaz</td>
+								<td>Hepatitis</td>
+								<td>05/04/2018</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#addGrowthModal">Add
+										Growth Info</button>
+									<button class="btn btn-info" data-toggle="modal"
+										data-target="#showGrowthModal">Show Growth</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child1">Remove</button></td>
+							</tr>
+							<tr id="child2">
+								<td>Shama</td>
+								<td>Danish</td>
+								<td>Naaznee</td>
+								<td>Chickenpox</td>
+								<td>10/04/2018</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#addGrowthModal">Add
+										Growth Info</button>
+									<button class="btn btn-info" data-toggle="modal"
+										data-target="#showGrowthModal">Show Growth</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child2">Remove</button></td>
+							</tr>
+
+							<tr id="child3">
+								<td>Aafiya</td>
+								<td>Jamaal</td>
+								<td>Aafreen</td>
+								<td>Tetanus</td>
+								<td>15/04/2018</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#addGrowthModal">Add
+										Growth Info</button>
+									<button class="btn btn-info" data-toggle="modal"
+										data-target="#showGrowthModal">Show Growth</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child3">Remove</button></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="container" id="todays-not">
+				<br />
+				<div class="d-flex">
+					<img src="img/medicalsymbol.jpg" alt="medicalsymbol"
+						class="mx-auto" />
+				</div>
+				<br />
+				<div class="table-responsive">
+					<table class="table table-bordered table-stripped">
+						<thead class="thead-dark">
+							<tr>
+								<th>Child Name</th>
+								<th>Father Name</th>
+								<th>Mother Name</th>
+								<th>Email</th>
+								<th>Vaccine</th>
+								<th>Due Date</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="not1">
+								<td>Nafees</td>
+								<td>Tahir Raza</td>
+								<td>Mumtaaz</td>
+								<td>Hepatitis</td>
+								<td>05/04/2018</td>
+								<td><button class="btn btn-success btn-sm">Send
+										Mail</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#ignoreModal" data-whatever="#not1">Ignore</button></td>
+							</tr>
+							<tr id="not2">
+								<td>Shama</td>
+								<td>Danish</td>
+								<td>Naaznee</td>
+								<td>Chickenpox</td>
+								<td>10/04/2018</td>
+								<td><button class="btn btn-success btn-sm">Send
+										Mail</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#ignoreModal" data-whatever="#not2">Ignore</button></td>
+							</tr>
+
+							<tr id="not3">
+								<td>Aafiya</td>
+								<td>Jamaal</td>
+								<td>Aafreen</td>
+								<td>Tetanus</td>
+								<td>15/04/2018</td>
+								<td><button class="btn btn-success btn-sm">Send
+										Mail</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#ignoreModal" data-whatever="#not3">Ignore</button></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="signOutModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Sign Out</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Are you sure, you want to sign out?</div>
+
+				<!-- Modal footer -->
+				<div class="modal-footer bg-light">
+					<button type="button" class="btn btn-success float-left"
+						data-dismiss="modal">No</button>
+					<button type="button" class="btn btn-danger" onclick="logout()">Yes</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="removeModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Remove Child</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Are you sure, you want to remove child
+					from our system?</div>
+
+				<!-- Modal footer -->
+				<div class="modal-footer bg-light">
+					<button type="button" class="btn btn-success float-left"
+						data-dismiss="modal">No</button>
+					<button type="button" class="btn btn-danger" onclick="remove()">Yes</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="ignoreModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Ignore Notification</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Are you sure, you want to ignore
+					notification?</div>
+
+				<!-- Modal footer -->
+				<div class="modal-footer bg-light">
+					<button type="button" class="btn btn-success float-left"
+						data-dismiss="modal">No</button>
+					<button type="button" class="btn btn-danger" onclick="remove()">Yes</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="addGrowthModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Add Child's Growth Info</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">
+					<form onsubmit="return addGrowthForm(this)">
+						<div class="form-row form-group">
+							<div class="col-sm-3">Child ID</div>
+							<div class="col-sm-9">
+								<input type="number" name="cid" id="cid" required readonly
+									value="35" class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Child's Height</div>
+							<div class="input-group col-sm-9">
+								<input type="number" name="height" id="height" required
+									class="form-control" />
+								<div class="input-group-append">
+									<span class="input-group-text" id="basic-addon2">cm</span>
+								</div>
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Child's Weight</div>
+							<div class="input-group col-sm-9">
+								<input type="number" name="weight" id="weight" required
+									class="form-control" />
+								<div class="input-group-append">
+									<span class="input-group-text" id="basic-addon2">kg</span>
+								</div>
+							</div>
+						</div>
+						<button type="submit" class="btn btn-success float-right">Submit</button>
+					</form>
+
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="showGrowthModal">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Child's Growth Info</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">
+					<ul class="bar-graph pb-4">
+						<li class="bar-graph-axis">
+							<div class="bar-graph-label">40</div>
+							<div class="bar-graph-label">35</div>
+							<div class="bar-graph-label">30</div>
+							<div class="bar-graph-label">25</div>
+							<div class="bar-graph-label">20</div>
+							<div class="bar-graph-label">15</div>
+							<div class="bar-graph-label">10</div>
+							<div class="bar-graph-label">5</div>
+							<div class="bar-graph-label">0</div>
+						</li>
+						<li class="bar primary" style="height: 30%;" title="12 BMI">
+							<div class="percent">
+								12<span>BMI</span>
+							</div>
+							<div class="description">1st week</div>
+						</li>
+						<li class="bar secondary" style="height: 45%;" title="18 BMI">
+							<div class="percent">
+								18<span>BMI</span>
+							</div>
+							<div class="description">2nd week</div>
+						</li>
+						<li class="bar success" style="height: 60%;" title="80 BMI">
+							<div class="percent">
+								24<span>BMI</span>
+							</div>
+							<div class="description">3rd week</div>
+						</li>
+						<li class="bar warning" style="height: 75%;" title="75 BMI">
+							<div class="percent">
+								30<span>BMI</span>
+							</div>
+							<div class="description">4th week</div>
+						</li>
+						<li class="bar alert" style="height: 90%;" title="40 BMI">
+							<div class="percent">
+								36<span>BMI</span>
+							</div>
+							<div class="description">5th week</div>
+						</li>
+					</ul>
+
+
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="resultModal" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Title</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Body</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

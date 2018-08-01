@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Vaccination Reminder Application System</title>
+<script src="js/jquery.min.js" type="text/javascript"></script>
+<script src="js/bootstrap.min.js" type="text/javascript"></script>
+<link href="css/bootstrap.min.css" type="text/css" rel="stylesheet" />
+<link href="css/style.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript">
+	if (sessionStorage.getItem("username") != null)
+		window.history.back();
+	function welcome() {
+		$("#welcome").show().siblings().hide();
+		$(".side-nav ul li a").removeClass("active").addClass(
+				"bg-secondary text-white");
+	}
+	function signIn(elem) {
+		$(".side-nav ul li:nth-child(" + elem + ") a").removeClass(
+				"bg-secondary text-white").addClass("active").parent()
+				.siblings().find("a").removeClass("active").addClass(
+						"bg-secondary text-white");
+	}
+	function signInAs(which) {
+		if (which == 1) {
+			$("#sign-in form").attr("action", "MemberLogin");
+			$("#sign-in form #login-type").val("false");
+			$("#sign-in form button").text("Sign In as a User");
+		} else {
+			$("#sign-in form").attr("action", "AdminLogin");
+			$("#sign-in form #login-type").val("true");
+			$("#sign-in form button").text("Sign In as a Admin");
+		}
+		$("#sign-in").show().siblings().hide();
+	}
+	function signUp(elem) {
+		$("#sign-up").show().siblings().hide();
+		$(".side-nav ul li:nth-child(" + elem + ") a").removeClass(
+				"bg-secondary text-white").addClass("active").parent()
+				.siblings().find("a").removeClass("active").addClass(
+						"bg-secondary text-white");
+		$("#signInCollapse").collapse("hide");
+	}
+	function check() {
+		if ($("#sign-up form #password").val() != $(
+				"#sign-up form #confirm_password").val()) {
+			$("#sign-up form #confirm_password")
+					.after(
+							"<br/><label class='alert alert-danger'>Password Mismatch!</label>");
+		} else {
+			$("#sign-up form .alert-danger").remove();
+		}
+	}
+
+	function forgotPass(elem) {
+		$("#fpassModal").modal("hide");
+		$("body").css("cursor", "wait");
+		$.ajax({
+			type : "POST",
+			url : "ForgotPassword",
+			data : $(elem).serialize(),
+			success : function(data) {
+				var obj = JSON.parse(data);
+				if (obj.response == "ok") {
+					$("#resultModal .modal-title").text("Password Sent");
+					$("#resultModal .modal-body").text(
+							"Your Password has been sent to your mail");
+				} else {
+					$("#resultModal .modal-title").text("Not Sent");
+					$("#resultModal .modal-body").text("Try Again");
+				}
+				$("#resultModal .modal-dialog").addClass("modal-sm");
+				$("#resultModal").modal("show");
+				$("body").css("cursor", "default");
+			},
+			error : function(xhr, status) {
+				alert("error");
+			}
+		});
+		return false;
+	}
+</script>
+</head>
+<body class="bg-light" onload="welcome()">
+	<div class="row no-gutters">
+		<div class="col-sm-3 side-nav bg-dark">
+			<aside>
+				<ul class="list-group">
+					<li onclick="signIn(1)"><a
+						class="list-group-item bg-secondary text-white"
+						data-toggle="collapse" href="#signInCollapse" role="button"
+						aria-expanded="false" aria-controls="signInCollapse">Sign In</a></li>
+					<li>
+						<div class="collapse" id="signInCollapse">
+							<div class="list-group">
+								<a href="javascript:signInAs(1)"
+									class="list-group-item bg-light text-dark">Sign In as a
+									User</a> <a href="javascript:signInAs(2)"
+									class="list-group-item bg-light text-dark">Sign In as a
+									Admin</a>
+							</div>
+						</div>
+					</li>
+					<li><a class="list-group-item active"
+						href="javascript:signUp(3)">Sign Up</a></li>
+					<li><a
+						class="list-group-item bg-secondary text-white disabled" href="#">Add
+							Child's Info</a></li>
+					<li><a
+						class="list-group-item bg-secondary text-white disabled" href="#">Add/Show
+							Child's Growth</a></li>
+					<li><a
+						class="list-group-item bg-secondary text-white disabled" href="#">Today's
+							Notifications</a></li>
+					<li><a
+						class="list-group-item bg-secondary text-white disabled" href="#">Sign
+							out</a></li>
+				</ul>
+			</aside>
+		</div>
+		<div class="col-sm-3"></div>
+		<div class="col-sm-9">
+			<div class="container pb-4" id="sign-in">
+				<br />
+				<div class="d-flex">
+					<img src="img/medicalsymbol.jpg" alt="medicalsymbol"
+						class="mx-auto" />
+				</div>
+				<br />
+				<form name="index" action="MemberLogin" method="post">
+					<input type="text" name="login-type" id="login-type" class="d-none"
+						value="false" />
+					<div class="form-row form-group">
+						<div class="col-sm-3">UserName</div>
+						<div class="col-sm-9">
+							<input type="text" name="username" required class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+						<div class="col-3">PassWord</div>
+						<div class="col-9">
+							<input type="password" name="password" required
+								class="form-control" minlength="6" />
+						</div>
+					</div>
+					<p class="text-right">
+						<a href="#" data-toggle="modal" data-target="#fpassModal">Forgot
+							password ?</a>
+					</p>
+					<button type="submit" class="btn btn-success mx-auto d-block">Sign
+						In</button>
+				</form>
+			</div>
+			<div class="container" id="welcome">
+				<br />
+				<div class="d-flex">
+					<img src="img/medicalsymbol.jpg" alt="medicalsymbol"
+						class="mx-auto" />
+				</div>
+				<br />
+				<h1 class="display-1 text-center">Welcome!</h1>
+			</div>
+			<div class="container" id="sign-up">
+				<br />
+				<div class="d-flex">
+					<img src="img/medicalsymbol.jpg" alt="medicalsymbol"
+						class="mx-auto" />
+				</div>
+				<br />
+				<form action="MemberSignup" method="post" name="newuser">
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">UserName</div>
+						<div class="col-sm-9">
+							<input type="text" id="uname" name="username" required
+								class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Email ID</div>
+						<div class="col-sm-9">
+							<input type="email" id="email" name="email" required
+								class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Password</div>
+						<div class="col-sm-9">
+							<input type="password" placeholder="Password" id="password"
+								name="pwd" required class="form-control" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Confirm Password</div>
+						<div class="col-sm-9">
+							<input type="password" placeholder="Confirm Password"
+								id="confirm_password" name="cpwd" required class="form-control"
+								onblur="check()" />
+						</div>
+					</div>
+					<div class="form-row form-group">
+
+						<div class="col-sm-3">Mobile Number</div>
+						<div class="col-sm-9">
+							<input type="tel" id="mobile_num" name="telephone" required
+								class="form-control" />
+						</div>
+					</div>
+					<button type="submit" class="btn btn-success mx-auto d-block">Sign
+						Up</button>
+				</form>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="resultModal" tabindex="-1">
+		<div class="modal-dialog modal-sm">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Title</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Body</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="fpassModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Recover via Email</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">
+					<form onsubmit="return forgotPass(this)">
+						<div class="form-row form-group">
+							<div class="col-sm-3">Registered Email</div>
+							<div class="col-sm-9">
+								<input type="email" name="email" id="reg-email" required
+									class="form-control" placeholder="Enter Associated Email" />
+							</div>
+						</div>
+						<button type="submit" class="btn btn-success float-right">Submit</button>
+					</form>
+
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+</body>
+</html>

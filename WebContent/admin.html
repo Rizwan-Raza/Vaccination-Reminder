@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Vaccination Reminder Application System</title>
+<script src="js/jquery.min.js" type="text/javascript"></script>
+<script src="js/bootstrap.min.js" type="text/javascript"></script>
+<link href="css/bootstrap.min.css" type="text/css" rel="stylesheet" />
+<link href="css/style.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript">
+	var rmcid, rmmid;
+	function showUsers(elem) {
+		$("#show-users").show().siblings().hide();
+		$(".side-nav ul li:nth-child(" + elem + ") a").removeClass(
+				"bg-secondary text-white").addClass("active").parent()
+				.siblings().find("a").removeClass("active").addClass(
+						"bg-secondary text-white");
+	}
+	function showChilds(elem) {
+		$("#show-childs").show().siblings().hide();
+		$(".side-nav ul li:nth-child(" + elem + ") a").removeClass(
+				"bg-secondary text-white").addClass("active").parent()
+				.siblings().find("a").removeClass("active").addClass(
+						"bg-secondary text-white");
+	}
+	function getInitialData() {
+		$
+				.ajax({
+					type : 'POST',
+					url : 'GetUsers',
+					success : function(data, status) {
+						// console.log(data);
+						$("#show-users table tbody").empty();
+						var obj = JSON.parse(data);
+						var string = "";
+						for (var i = 0; i < obj.users.length; i++) {
+							var user = obj.users[i];
+							string += "<tr id='user"+user.memId+"'>";
+							string += "<td>" + user.username + "</td>";
+							string += "<td>" + user.email + "</td>";
+							string += "<td>" + user.mobile + "</td>";
+							string += "<td>" + (user.admin == "true" ? "Yes" : "No") + "</td>";
+							if(user.admin == "true") {
+								string += "<td><button class='btn btn-success btn-sm mr-1' onclick='editUser("+user.memId+", \""
+								+ user.username
+								+ "\", \""+user.email+"\", \""+user.mobile+"\")'>Edit</button>"
+								+ '<button class="btn btn-info btn-sm mr-1" onclick="removeAdmin('+user.memId+') "id="adminBtn'+user.memId+'">Remove Admin</button></td>';
+							} else {
+								string += "<td><button class='btn btn-success btn-sm mr-1' onclick='editUser("+user.memId+", \""
+								+ user.username
+								+ "\", \""+user.email+"\", \""+user.mobile+"\")'>Edit</button>"
+								+ '<button class="btn btn-info btn-sm mr-1" onclick="makeAdmin('+user.memId+')" id="adminBtn">Make Admin</button>'
+								+ "<button class='btn btn-danger btn-sm' data-toggle='modal' data-target='#removeUserModal' data-whatever='"+user.memId+"'>Remove</button></td>";
+							}
+							string += "</tr>";
+						}
+						if(string == "") {
+							string = "<tr><td colspan='5'>No Result Found</td></tr>";
+						}
+						// console.log(string);
+						$("#show-users table tbody").html(string);
+					},
+					error : function(xhr, textStatus) {
+						alert("Error: " + textStatus);
+					}
+				});
+		$
+				.ajax({
+					type : 'POST',
+					url : 'GetChildren',
+					success : function(data, status) {
+						// console.log(data);
+						$("#show-childs table tbody").empty();
+						var obj = JSON.parse(data);
+						var string = "";
+						for (var i = 0; i < obj.children.length; i++) {
+							var child = obj.children[i];
+							string += "<tr id='child"+child.cid+"'>";
+							string += "<td>" + child.c_name + "</td>";
+							string += "<td>" + child.f_name + "</td>";
+							string += "<td>" + child.m_name + "</td>";
+							string += "<td>" + child.email + "</td>";
+							string += "<td>" + child.mobile + "</td>";
+							string += "<td><button class='btn btn-success btn-sm mr-1' onclick='editChild("+child.cid+", \"" + child.c_name + "\", \"" + child.f_name + "\", \"" + child.m_name + "\", \"" + child.email + "\", \"" + child.mobile +"\")'>Edit</button>"
+									+ "<button class='btn btn-info btn-sm mr-1' data-toggle='modal' data-target='#showGrowthModal' data-whatever='"+child.cid+"'>Show Growth</button>"
+									+ "<button class='btn btn-danger btn-sm' data-toggle='modal' data-target='#removeChildModal' data-whatever='"+child.cid+"'>Remove</button></td></td>";
+							string += "</tr>";
+						}
+						if(string == "") {
+							string = "<tr><td colspan='6'>No Result Found</td></tr>";
+						}
+						// console.log(string);
+						$("#show-childs table tbody").html(string);
+					},
+					error : function(xhr, textStatus) {
+						alert("Error: " + textStatus);
+					}
+				});
+
+	}
+	function signOut(elem) {
+		$("#signOutModal").modal("show");
+	}
+	function logout() {
+		sessionStorage.removeItem("username");
+		window.location.href = "./";
+	}
+	function editChild(cid, name, fname, mname, email, phone) {
+		$("#ceditModal #e-cid").val(cid);
+		$("#ceditModal #e-cname").val(name);
+		$("#ceditModal #e-fname").val(fname);
+		$("#ceditModal #e-mname").val(mname);
+		$("#ceditModal #e-email").val(email);
+		$("#ceditModal #e-telephone").val(phone);
+		$("#ceditModal").modal("show");
+	}
+	function editUser(memid, username, email, phone) {
+		$("#ueditModal #eu-memID").val(memid);
+		$("#ueditModal #eu-username").val(username);
+		$("#ueditModal #eu-email").val(email);
+		$("#ueditModal #eu-telephone").val(phone);
+		$("#ueditModal").modal("show");
+	}
+	function makeAdmin(memId) {
+		$("body").css("cursor", "wait");
+		$.ajax({
+			type: "POST",
+			url: "MakeAdmin",
+			data: {
+				memid: memId,
+				yesorno: "1"
+			},
+			success: function(data) {
+				var obj = JSON.parse(data);
+				if(obj.response == "ok") {
+					$('#user'+rmcid).hide("slow", function() {
+						$('#user'+rmcid).remove();
+					});
+					$("#resultModal .modal-title").text("User Promoted");
+					$("#resultModal .modal-body").text("User is now Admin");
+				} else {
+					$("#resultModal .modal-title").text("Not Promoted");
+					$("#resultModal .modal-body").text("User is Still a normal User");
+				}
+				$("#resultModal .modal-dialog").addClass("modal-sm");					
+				$("#resultModal").modal("show");					
+				$("body").css("cursor", "default");
+				$("#adminBtn"+memId).attr("onclick", "removeAdmin("+memId+")");
+				$("#adminBtn"+memId).text("Remove Admin");
+			},
+			error: function(xhr, status) {
+				alert("error");
+			}
+		});
+	}
+	
+	function removeAdmin(memId) {
+		$("body").css("cursor", "wait");
+		$.ajax({
+			type: "POST",
+			url: "MakeAdmin",
+			data: {
+				memid: memId,
+				yesorno: "0"
+			},
+			success: function(data) {
+				var obj = JSON.parse(data);
+				if(obj.response == "ok") {
+					$('#user'+rmcid).hide("slow", function() {
+						$('#user'+rmcid).remove();
+					});
+					$("#resultModal .modal-title").text("User Demoted");
+					$("#resultModal .modal-body").text("Admin is now a Normal User");
+				} else {
+					$("#resultModal .modal-title").text("Not Demoted");
+					$("#resultModal .modal-body").text("User is Still an Admin");
+				}
+				$("#resultModal .modal-dialog").addClass("modal-sm");					
+				$("#resultModal").modal("show");					
+				$("body").css("cursor", "default");
+				$("#adminBtn"+memId).attr("onclick", "makeAdmin("+memId+")");
+				$("#adminBtn"+memId).text("Make Admin");
+			},
+			error: function(xhr, status) {
+				alert("error");
+			}
+		});
+	}
+	$(document).ready(
+			function() {
+				getInitialData();
+				$(document).ajaxComplete(function( event, xhr, settings ) {
+					$("html, body").css({"cursor": "default", "opacity": "1"});
+
+				});
+				$(document).ajaxSend(function( event, xhr, settings ) {
+					$("html, body").css({"cursor": "wait", "opacity": "0.8"});
+
+				});
+				$('#removeChildModal').on('show.bs.modal', function(event) {
+					var button = $(event.relatedTarget) // Button that triggered the modal
+					rmcid = button.data('whatever') // Extract info from data-* attributes
+				});
+				$('#removeUserModal').on('show.bs.modal', function(event) {
+					var button = $(event.relatedTarget) // Button that triggered the modal
+					rmmid = button.data('whatever') // Extract info from data-* attributes
+				});
+				$('#addGrowthModal').on(
+						'show.bs.modal',
+						function(event) {
+							$("#addGrowthModal form #cid").val(
+									$(event.relatedTarget).data('whatever'));
+
+						});
+				$('#showGrowthModal').on(
+						'show.bs.modal',
+						function(event) {
+							getGrowthOf($(event.relatedTarget).data('whatever'));
+
+						});
+				if (sessionStorage.getItem("username") != null) {
+					$("aside").prepend(
+							"<div class='text-white p-3'>"
+							+"<h4>Welcome <b>"
+							+ sessionStorage.getItem("username")
+							+ "</b>!</h4>"
+							+"</div>");
+				}
+			});
+
+	function getGrowthOf(cid) {
+		$
+				.ajax({
+					type : 'POST',
+					url : 'GetGrowth',
+					data : {
+						cid: cid
+					}, 
+					success : function(data, status) {
+						console.log("Growth"+data);
+						$("#showGrowthModal .bar-graph li.bar").remove();
+						var obj = JSON.parse(data);
+						var backs = [
+							{"back": "primary", "color": "white"},
+							{"back": "secondary", "color": "white"},
+							{"back": "success", "color": "white"},
+							{"back": "danger", "color": "white"},
+							{"back": "warning", "color": "dark"},
+							{"back": "info", "color": "white"},
+							{"back": "light", "color": "dark"},
+							{"back": "dark", "color": "white"}
+						];
+						for (var i = 0; i < obj.growths.length; i++) {
+							var growth = obj.growths[i];
+							var bmi = growth.weight / (growth.height / 100);
+							bmi = bmi.toFixed(2);
+							var string = "<li class='bar bg-"+backs[i%8].back+" text-"+backs[i%8].color+"' style='height: "+bmi*(100/40)+"%;' title='"+bmi+" BMI'>"
+									+ "<div class='percent'>"+bmi+"<span>BMI</span></div>"
+									+ "<div class='description'>"+growth.timeslot+"</div>"
+									+ "</li>";
+							console.log(string)
+							$("#showGrowthModal .bar-graph").append(string);
+						}
+					},
+					error : function(xhr, textStatus) {
+						alert("Error: " + textStatus);
+					}
+				});
+	}
+	function removeUser() {
+		$('#removeUserModal').modal("hide");
+		$.ajax({
+			type: "POST",
+			url: "RemoveUser",
+			data: {
+				memid: rmmid
+			},
+			success: function(data) {
+				var obj = JSON.parse(data);
+				if(obj.response == "ok") {
+					$('#user'+rmmid).hide("slow", function() {
+						$('#user'+rmmid).remove();
+					});
+					$("#resultModal .modal-title").text("User Removed");
+					$("#resultModal .modal-body").text("User Removed Successfully");
+				} else {
+					$("#resultModal .modal-title").text("Not Removed");
+					$("#resultModal .modal-body").text("User Not Removed");
+				}
+				$("#resultModal .modal-dialog").addClass("modal-sm");					
+				$("#resultModal").modal("show");					
+			},
+			error: function(xhr, status) {
+				alert("error");
+			}
+		});
+	}
+	function removeMyChild() {
+		$('#removeChildModal').modal("hide");
+		$.ajax({
+			type: "POST",
+			url: "RemoveChild",
+			data: {
+				cid: rmcid
+			},
+			success: function(data) {
+				var obj = JSON.parse(data);
+				if(obj.response == "ok") {
+					$('#child'+rmcid).hide("slow", function() {
+						$('#child'+rmcid).remove();
+					});
+					$("#resultModal .modal-title").text("Child Removed");
+					$("#resultModal .modal-body").text("Child Removed Successfully");
+				} else {
+					$("#resultModal .modal-title").text("Not Removed");
+					$("#resultModal .modal-body").text("Child Not Removed");
+				}
+				$("#resultModal .modal-dialog").addClass("modal-sm");					
+				$("#resultModal").modal("show");					
+			},
+			error: function(xhr, status) {
+				alert("error");
+			}
+		});
+	}
+
+</script>
+</head>
+<body class="bg-light" onload="showUsers(3)">
+	<div class="row no-gutters">
+		<div class="col-sm-3 side-nav bg-dark">
+			<aside>
+				<ul class="list-group">
+					<li><a
+						class="list-group-item bg-secondary text-white disabled" href="#">Sign
+							In</a></li>
+					<li><a
+						class="list-group-item bg-secondary text-white disabled" href="#">Sign
+							Up</a></li>
+					<li><a class="list-group-item active"
+						href="javascript:showUsers(3)">Show Users</a></li>
+					<li><a class="list-group-item bg-secondary text-white"
+						href="javascript:showChilds(4)">Show Children</a></li>
+					<li><a class="list-group-item bg-secondary text-white"
+						href="javascript:signOut()">Sign out</a></li>
+				</ul>
+			</aside>
+		</div>
+		<div class="col-sm-3"></div>
+		<div class="col-sm-9">
+			<div class="container pb-4" id="show-users">
+				<br />
+				<div class="d-flex">
+					<img src="img/medicalsymbol.jpg" alt="medicalsymbol"
+						class="mx-auto" />
+				</div>
+				<br />
+				<div class="table-responsive">
+					<table class="table table-bordered table-stripped">
+						<thead class="thead-dark">
+							<tr>
+								<th>Username</th>
+								<th>Email</th>
+								<th>Mobile</th>
+								<th>isAdmin</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="user1">
+								<td>Nafees</td>
+								<td>nafees.razy@gmail.com</td>
+								<td>9876543210</td>
+								<td>No</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#addGrowthModal">Edit</button>
+									<button class="btn btn-info btn-sm" data-toggle="modal"
+										data-target="#showGrowthModal">Make Admin</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child1">Remove</button></td>
+							</tr>
+							<tr id="user2">
+								<td>Shama</td>
+								<td>shama.parveen@gmail.com</td>
+								<td>9876543210</td>
+								<td>No</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#addGrowthModal">Edit</button>
+									<button class="btn btn-info btn-sm" data-toggle="modal"
+										data-target="#showGrowthModal">Make Admin</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child1">Remove</button></td>
+							</tr>
+							<tr id="user3">
+								<td>Aafiya</td>
+								<td>aafiya.anjum@gmail.com</td>
+								<td>9876543210</td>
+								<td>No</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#addGrowthModal">Edit</button>
+									<button class="btn btn-info btn-sm" data-toggle="modal"
+										data-target="#showGrowthModal">Make Admin</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child1">Remove</button></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="container" id="show-childs">
+				<br />
+				<div class="d-flex">
+					<img src="img/childimage.jpg" alt="child" class="mx-auto" />
+				</div>
+				<br />
+				<div class="table-responsive">
+					<table class="table table-bordered table-stripped">
+						<thead class="thead-dark">
+							<tr>
+								<th>Child Name</th>
+								<th>Father Name</th>
+								<th>Mother Name</th>
+								<th>Email</th>
+								<th>Mobile</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="child1">
+								<td>Nafees</td>
+								<td>Tahir Raza</td>
+								<td>Mumtaaz</td>
+								<td>nafees.razy@gmail.com</td>
+								<td>9876543210</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#ceditModal">Edit</button>
+									<button class="btn btn-info btn-sm" data-toggle="modal"
+										data-target="#showGrowthModal">Show Growth</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child1">Remove</button></td>
+							</tr>
+							<tr id="child2">
+								<td>Shama</td>
+								<td>Danish</td>
+								<td>Naaznee</td>
+								<td>Chickenpox</td>
+								<td>10/04/2018</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#ceditModal">Edit</button>
+									<button class="btn btn-info btn-sm" data-toggle="modal"
+										data-target="#showGrowthModal">Show Growth</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child2">Remove</button></td>
+							</tr>
+
+							<tr id="child3">
+								<td>Aafiya</td>
+								<td>Jamaal</td>
+								<td>Aafreen</td>
+								<td>Tetanus</td>
+								<td>15/04/2018</td>
+								<td><button class="btn btn-success btn-sm"
+										data-toggle="modal" data-target="#ceditModal">Edit</button>
+									<button class="btn btn-info btn-sm" data-toggle="modal"
+										data-target="#showGrowthModal">Show Growth</button>
+									<button class="btn btn-danger btn-sm" data-toggle="modal"
+										data-target="#removeModal" data-whatever="#child3">Remove</button></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="signOutModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Sign Out</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Are you sure, you want to sign out?</div>
+
+				<!-- Modal footer -->
+				<div class="modal-footer bg-light">
+					<button type="button" class="btn btn-success float-left"
+						data-dismiss="modal">No</button>
+					<button type="button" class="btn btn-danger" onclick="logout()">Yes</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="removeChildModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Remove Child</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Are you sure, you want to remove child
+					from our system?</div>
+
+				<!-- Modal footer -->
+				<div class="modal-footer bg-light">
+					<button type="button" class="btn btn-success float-left"
+						data-dismiss="modal">No</button>
+					<button type="button" class="btn btn-danger"
+						onclick="removeMyChild();">Yes</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="removeUserModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Remove User</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Are you sure, you want to remove user
+					from our system?</div>
+
+				<!-- Modal footer -->
+				<div class="modal-footer bg-light">
+					<button type="button" class="btn btn-success float-left"
+						data-dismiss="modal">No</button>
+					<button type="button" class="btn btn-danger"
+						onclick="removeUser();">Yes</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="addGrowthModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Add Child's Growth Info</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">
+					<form action="AddGrowth" method="post">
+						<div class="form-row form-group">
+							<div class="col-sm-3">Child ID</div>
+							<div class="col-sm-9">
+								<input type="number" name="cid" id="cid" required readonly
+									value="35" class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Child's Height</div>
+							<div class="input-group col-sm-9">
+								<input type="number" name="height" id="height" required
+									class="form-control" />
+								<div class="input-group-append">
+									<span class="input-group-text" id="basic-addon2">cm</span>
+								</div>
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Child's Weight</div>
+							<div class="input-group col-sm-9">
+								<input type="number" name="weight" id="weight" required
+									class="form-control" />
+								<div class="input-group-append">
+									<span class="input-group-text" id="basic-addon2">kg</span>
+								</div>
+							</div>
+						</div>
+						<button type="submit" class="btn btn-success float-right">Submit</button>
+					</form>
+
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="showGrowthModal">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Child's Growth Info</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">
+					<ul class="bar-graph pb-4">
+						<li class="bar-graph-axis">
+							<div class="bar-graph-label">40</div>
+							<div class="bar-graph-label">35</div>
+							<div class="bar-graph-label">30</div>
+							<div class="bar-graph-label">25</div>
+							<div class="bar-graph-label">20</div>
+							<div class="bar-graph-label">15</div>
+							<div class="bar-graph-label">10</div>
+							<div class="bar-graph-label">5</div>
+							<div class="bar-graph-label">0</div>
+						</li>
+						<li class="bar bg-primary" style="height: 30%;" title="12 BMI">
+							<div class="percent">
+								12<span>BMI</span>
+							</div>
+							<div class="description">1st week</div>
+						</li>
+						<li class="bar bg-secondary" style="height: 45%;" title="18 BMI">
+							<div class="percent">
+								18<span>BMI</span>
+							</div>
+							<div class="description">2nd week</div>
+						</li>
+						<li class="bar bg-success" style="height: 60%;" title="80 BMI">
+							<div class="percent">
+								24<span>BMI</span>
+							</div>
+							<div class="description">3rd week</div>
+						</li>
+						<li class="bar bg-warning" style="height: 75%;" title="75 BMI">
+							<div class="percent">
+								30<span>BMI</span>
+							</div>
+							<div class="description">4th week</div>
+						</li>
+						<li class="bar bg-danger" style="height: 90%;" title="40 BMI">
+							<div class="percent">
+								36<span>BMI</span>
+							</div>
+							<div class="description">5th week</div>
+						</li>
+					</ul>
+
+
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="ueditModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Edit User's Info</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">
+					<form action="EditUser" method="post">
+						<div class="form-row form-group">
+							<div class="col-sm-3">User ID</div>
+							<div class="col-sm-9">
+								<input type="number" name="mem-id" id="eu-memID" required
+									readonly value="35" class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Username</div>
+							<div class="col-sm-9">
+								<input type="text" name="username" id="eu-username" required
+									class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Email</div>
+							<div class="col-sm-9">
+								<input type="email" name="email" id="eu-email" required
+									class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Mobile</div>
+							<div class="col-sm-9">
+								<input type="number" name="telephone" id="eu-telephone" required
+									class="form-control" />
+							</div>
+						</div>
+						<button type="submit" class="btn btn-success float-right">Submit</button>
+					</form>
+
+				</div>
+
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="ceditModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Edit Child's Info</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">
+					<form action="EditChild" method="post">
+						<div class="form-row form-group">
+							<div class="col-sm-3">Child ID</div>
+							<div class="col-sm-9">
+								<input type="number" name="cid" id="e-cid" required readonly
+									value="35" class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Name</div>
+							<div class="col-sm-9">
+								<input type="text" name="cname" id="e-cname" required
+									class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Father Name</div>
+							<div class="col-sm-9">
+								<input type="text" name="fname" id="e-fname" required
+									class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Mother Name</div>
+							<div class="col-sm-9">
+								<input type="text" name="mname" id="e-mname" required
+									class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Email</div>
+							<div class="col-sm-9">
+								<input type="email" name="email" id="e-email" required
+									class="form-control" />
+							</div>
+						</div>
+						<div class="form-row form-group">
+
+							<div class="col-sm-3">Mobile</div>
+							<div class="col-sm-9">
+								<input type="tel" name="telephone" id="e-telephone" required
+									class="form-control" />
+							</div>
+						</div>
+						<button type="submit" class="btn btn-success float-right">Submit</button>
+					</form>
+
+				</div>
+
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="resultModal" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+
+				<!-- Modal Header -->
+				<div class="modal-header bg-primary text-white">
+					<h4 class="modal-title">Title</h4>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+				</div>
+
+				<!-- Modal body -->
+				<div class="modal-body">Body</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
